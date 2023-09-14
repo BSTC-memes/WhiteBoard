@@ -1,80 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>HTML 塗鴉板</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>塗鴉程式</title>
   <style>
-    #canvas {
-      border: 1px solid #ccc;
+    canvas {
+      border: 1px solid #000;
     }
   </style>
-  <script>
-    window.addEventListener('DOMContentLoaded', (event) => {
-      const canvas = document.getElementById('canvas');
-      const context = canvas.getContext('2d');
-
-      let isDrawing = false;
-      let lastX = 0;
-      let lastY = 0;
-
-      function startDrawing(event) {
-        isDrawing = true;
-        [lastX, lastY] = [event.touches ? event.touches[0].clientX : event.offsetX, event.touches ? event.touches[0].clientY : event.offsetY];
-      }
-
-      function draw(event) {
-        if (!isDrawing) return;
-        context.beginPath();
-        context.moveTo(lastX, lastY);
-        context.lineTo(event.touches ? event.touches[0].clientX : event.offsetX, event.touches ? event.touches[0].clientY : event.offsetY);
-        context.stroke();
-        [lastX, lastY] = [event.touches ? event.touches[0].clientX : event.offsetX, event.touches ? event.touches[0].clientY : event.offsetY];
-      }
-
-      function stopDrawing() {
-        isDrawing = false;
-      }
-
-      function saveDoodle() {
-        // 將塗鴉圖片轉換為 base64 編碼的數據 URL
-        const imageData = canvas.toDataURL();
-
-        // 發送 POST 請求到伺服器
-        fetch('/save-doodle', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ imageData }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              console.log('塗鴉已儲存');
-            }
-          })
-          .catch((error) => {
-            console.error('儲存塗鴉時發生錯誤', error);
-          });
-      }
-
-      const saveButton = document.getElementById('save-button');
-      saveButton.addEventListener('click', saveDoodle);
-
-      canvas.addEventListener('mousedown', startDrawing);
-      canvas.addEventListener('mousemove', draw);
-      canvas.addEventListener('mouseup', stopDrawing);
-      canvas.addEventListener('mouseout', stopDrawing);
-
-      canvas.addEventListener('touchstart', startDrawing);
-      canvas.addEventListener('touchmove', draw);
-      canvas.addEventListener('touchend', stopDrawing);
-      canvas.addEventListener('touchcancel', stopDrawing);
-    });
-  </script>
 </head>
 <body>
-  <canvas id="canvas" width="800" height="600"></canvas>
-  <button id="save-button">儲存塗鴉</button>
+  <h1>塗鴉程式</h1>
+  <canvas id="canvas" width="400" height="400"></canvas>
+  <button id="saveBtn">儲存塗鴉</button>
+
+  <script>
+    // 獲取 canvas 元素和上下文
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 設置繪圖筆的顏色和粗細
+    let color = '#000';
+    let size = 5;
+
+    // 監聽滑鼠事件，繪製塗鴉
+    let isDrawing = false;
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    function startDrawing(event) {
+      isDrawing = true;
+      draw(event);
+    }
+
+    function draw(event) {
+      if (!isDrawing) return;
+
+      const x = event.offsetX;
+      const y = event.offsetY;
+
+      ctx.lineWidth = size;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = color;
+
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+      ctx.beginPath();
+    }
+
+    // 監聽儲存按鈕的點擊事件，將塗鴉數據發送到後端
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.addEventListener('click', saveDrawing);
+
+    function saveDrawing() {
+      const dataURL = canvas.toDataURL(); // 獲取塗鴉的資料 URL
+
+      // 發送 POST 請求到後端
+      fetch('/api/drawings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ drawingData: dataURL })
+      })
+      .then(response => {
+        if (response.ok) {
+          alert('塗鴉已成功儲存！');
+          // 清除 canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } else {
+          alert('塗鴉儲存失敗！');
+        }
+      })
+      .catch(error => {
+        console.error('發生錯誤：', error);
+      });
+    }
+  </script>
 </body>
 </html>
