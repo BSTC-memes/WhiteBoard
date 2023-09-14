@@ -2,10 +2,10 @@
 <html>
 <head>
   <title>HTML 塗鴉板</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     #canvas {
       border: 1px solid #ccc;
-      cursor: crosshair;
     }
   </style>
   <script>
@@ -19,30 +19,62 @@
 
       function startDrawing(event) {
         isDrawing = true;
-        [lastX, lastY] = [event.offsetX, event.offsetY];
+        [lastX, lastY] = [event.touches ? event.touches[0].clientX : event.offsetX, event.touches ? event.touches[0].clientY : event.offsetY];
       }
 
       function draw(event) {
         if (!isDrawing) return;
         context.beginPath();
         context.moveTo(lastX, lastY);
-        context.lineTo(event.offsetX, event.offsetY);
+        context.lineTo(event.touches ? event.touches[0].clientX : event.offsetX, event.touches ? event.touches[0].clientY : event.offsetY);
         context.stroke();
-        [lastX, lastY] = [event.offsetX, event.offsetY];
+        [lastX, lastY] = [event.touches ? event.touches[0].clientX : event.offsetX, event.touches ? event.touches[0].clientY : event.offsetY];
       }
 
       function stopDrawing() {
         isDrawing = false;
       }
 
+      function saveDoodle() {
+        // 將塗鴉圖片轉換為 base64 編碼的數據 URL
+        const imageData = canvas.toDataURL();
+
+        // 發送 POST 請求到伺服器
+        fetch('/save-doodle', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ imageData }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              console.log('塗鴉已儲存');
+            }
+          })
+          .catch((error) => {
+            console.error('儲存塗鴉時發生錯誤', error);
+          });
+      }
+
+      const saveButton = document.getElementById('save-button');
+      saveButton.addEventListener('click', saveDoodle);
+
       canvas.addEventListener('mousedown', startDrawing);
       canvas.addEventListener('mousemove', draw);
       canvas.addEventListener('mouseup', stopDrawing);
       canvas.addEventListener('mouseout', stopDrawing);
+
+      canvas.addEventListener('touchstart', startDrawing);
+      canvas.addEventListener('touchmove', draw);
+      canvas.addEventListener('touchend', stopDrawing);
+      canvas.addEventListener('touchcancel', stopDrawing);
     });
   </script>
 </head>
 <body>
   <canvas id="canvas" width="800" height="600"></canvas>
+  <button id="save-button">儲存塗鴉</button>
 </body>
 </html>
